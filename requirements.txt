@@ -7,3 +7,4 @@ xlsxwriter
 fsspec
 bcrypt
 streamlit_authenticator
+matplotlib
