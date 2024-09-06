@@ -1,0 +1,9 @@
+streamlit
+openpyxl
+pandas
+plotly
+Pillow
+xlsxwriter
+fsspec
+bcrypt
+streamlit_authenticator
