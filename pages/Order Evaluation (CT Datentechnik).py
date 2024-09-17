@@ -56,7 +56,7 @@ name, authentication_status, username = authenticator.login("main", fields=field
 if authentication_status:
     authenticator.logout("Logout", "sidebar")
     st.sidebar.title(f"Welcome {name}")
-    st.title("Data Processing App")
+    st.title("Order Evaluation")
 
     st.markdown("### 🔧 Settings")
 
@@ -78,7 +78,10 @@ if authentication_status:
     # Upload the Excel file
     uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
 
+    # Reset the graph when a new file is uploaded
     if uploaded_file:
+        st.session_state.plot = None  # Clear the previous plot
+
         sheets_dict, combined_df = read_excel_data(uploaded_file)
         columns = combined_df.columns.tolist()
 
@@ -107,14 +110,18 @@ if authentication_status:
             # Filter the data based on the selected step number
             filtered_df = combined_df[combined_df[step_number_column] >= step_value + 1].dropna()
 
-            # Set the group_by_column to 'New Cycle Time' if processing step number
-            filtered_df['New Cycle Time'] = filtered_df.groupby('Sheet').cumcount()
-            group_by_column = 'New Cycle Time'
+            # Ensure valid data exists before setting 'New Cycle Time'
+            if not filtered_df.empty:
+                # Set the group_by_column to 'New Cycle Time' if processing step number
+                filtered_df['New Cycle Time'] = filtered_df.groupby('Sheet').cumcount() + 1
+                group_by_column = 'New Cycle Time'
 
-            # Button to preview the filtered dataset
-            if st.button('Preview Filtered Data'):
-                st.markdown("### Preview of Filtered Dataset with New Cycle Time Column")
-                st.dataframe(filtered_df)
+                # Button to preview the filtered dataset
+                if st.button('Preview Filtered Data'):
+                    st.markdown("### Preview of Filtered Dataset with New Cycle Time Column")
+                    st.dataframe(filtered_df)
+            else:
+                st.warning("No data available after step number filtering.")
         else:
             # If the user doesn't want to process step number, use the entire dataset
             filtered_df = combined_df.copy()
@@ -126,7 +133,7 @@ if authentication_status:
             for sheet_name, df in sheets_dict.items():
                 if selected_column in df.columns:
                     sanitized_sheet_name = sanitize_sheet_name(sheet_name)
-                    if process_step_number:
+                    if process_step_number and step_number_column in df.columns:
                         selected_data[sanitized_sheet_name] = df[df[step_number_column] >= step_value + 1][selected_column]
                     else:
                         selected_data[sanitized_sheet_name] = df[selected_column]
@@ -154,51 +161,62 @@ if authentication_status:
 
         # Button to show the graph
         if st.button('Show Graph'):
-            cleaned_df = filtered_df[[selected_column, group_by_column]].dropna()
+            # Ensure selected columns exist and have valid data
+            if selected_column in filtered_df.columns and group_by_column in filtered_df.columns:
+                cleaned_df = filtered_df[[selected_column, group_by_column]].dropna()
 
-            # Group by group_by_column and calculate statistics
-            grouped = cleaned_df.groupby(group_by_column)
-            mean_values = grouped.mean().reset_index()
-            median_values = grouped.median().reset_index()
-            std_values = grouped.std().reset_index()
+                # Check if the data has enough rows to plot
+                if not cleaned_df.empty:
+                    # Group by group_by_column and calculate statistics
+                    grouped = cleaned_df.groupby(group_by_column)
+                    mean_values = grouped.mean().reset_index()
+                    median_values = grouped.median().reset_index()
+                    std_values = grouped.std().reset_index()
 
-            # Create a Plotly figure
-            fig = go.Figure()
+                    # Create a Plotly figure
+                    fig = go.Figure()
 
-            # Add data trace for each sheet
-            for sheet_name, df in sheets_dict.items():
-                if process_step_number:
-                    filtered_sheet_df = df[df[step_number_column] >= step_value + 1].dropna(subset=[selected_column, cycle_time_column])
+                    # Add data trace for each sheet
+                    for sheet_name, df in sheets_dict.items():
+                        if process_step_number:
+                            filtered_sheet_df = df[df[step_number_column] >= step_value + 1].dropna(subset=[selected_column, cycle_time_column])
+                            # Add 'New Cycle Time' only if process_step_number is active and data is valid
+                            if not filtered_sheet_df.empty:
+                                filtered_sheet_df['New Cycle Time'] = filtered_sheet_df.groupby('Sheet').cumcount() + 1
+                        else:
+                            filtered_sheet_df = df.dropna(subset=[selected_column, cycle_time_column])
+
+                        if not filtered_sheet_df.empty:
+                            fig.add_trace(go.Scatter(x=filtered_sheet_df[group_by_column], y=filtered_sheet_df[selected_column], mode='lines', line=dict(color='blue'), showlegend=False))
+
+                    # Add mean, median, and std deviation lines
+                    fig.add_trace(go.Scatter(x=mean_values[group_by_column], y=mean_values[selected_column], mode='lines', name='Overall mean', line=dict(color='red', dash='dash')))
+                    fig.add_trace(go.Scatter(x=median_values[group_by_column], y=median_values[selected_column], mode='lines', name='Overall median', line=dict(color='green', dash='dot')))
+                    fig.add_trace(go.Scatter(x=std_values[group_by_column], y=mean_values[selected_column] + std_values[selected_column], mode='lines', name='Overall +1 std dev', line=dict(color='orange', dash='dashdot')))
+                    fig.add_trace(go.Scatter(x=std_values[group_by_column], y=mean_values[selected_column] - std_values[selected_column], mode='lines', name='Overall -1 std dev', line=dict(color='orange', dash='dashdot')))
+
+                    # Update plot layout
+                    fig.update_layout(
+                        title=f'<b>Line Chart of {selected_column}</b> across all sheets',
+                        xaxis_title=group_by_column,
+                        yaxis_title=selected_column,
+                        title_font=dict(size=18, color='navy'),
+                        autosize=True,
+                        width=900,
+                        height=700,
+                        font=dict(size=16)
+                    )
+
+                    # Store the plot in session state
+                    st.session_state.plot = fig
+
                 else:
-                    filtered_sheet_df = df.dropna(subset=[selected_column, cycle_time_column])
-
-                if not filtered_sheet_df.empty:
-                    if process_step_number:
-                        filtered_sheet_df['New Cycle Time'] = filtered_sheet_df.groupby('Sheet').cumcount()
-                    fig.add_trace(go.Scatter(x=filtered_sheet_df[group_by_column], y=filtered_sheet_df[selected_column], mode='lines', line=dict(color='blue'), showlegend=False))
-
-            # Add mean, median, and std deviation lines
-            fig.add_trace(go.Scatter(x=mean_values[group_by_column], y=mean_values[selected_column], mode='lines', name='Overall mean', line=dict(color='red', dash='dash')))
-            fig.add_trace(go.Scatter(x=median_values[group_by_column], y=median_values[selected_column], mode='lines', name='Overall median', line=dict(color='green', dash='dot')))
-            fig.add_trace(go.Scatter(x=std_values[group_by_column], y=mean_values[selected_column] + std_values[selected_column], mode='lines', name='Overall +1 std dev', line=dict(color='orange', dash='dashdot')))
-            fig.add_trace(go.Scatter(x=std_values[group_by_column], y=mean_values[selected_column] - std_values[selected_column], mode='lines', name='Overall -1 std dev', line=dict(color='orange', dash='dashdot')))
-
-            # Update plot layout
-            fig.update_layout(
-                title=f'<b>Line Chart of {selected_column}</b> across all sheets',
-                xaxis_title=group_by_column,
-                yaxis_title=selected_column,
-                title_font=dict(size=18, color='navy'),
-                autosize=True,
-                width=900,
-                height=700,
-                font=dict(size=16)
-            )
-            # Store the plot in session state
-            st.session_state.plot = fig
+                    st.error("No data available for the selected column.")
+            else:
+                st.error("Invalid column selection for plotting.")
 
         # Display the graph if available
-        if 'plot' in st.session_state:
+        if 'plot' in st.session_state and st.session_state.plot:
             st.plotly_chart(st.session_state.plot, use_container_width=True)
 
 elif authentication_status == False:
