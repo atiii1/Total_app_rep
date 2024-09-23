@@ -58,7 +58,7 @@ name, authentication_status, username = authenticator.login("main", fields=field
 if authentication_status:
     # Set the theme
     st.set_page_config(
-        page_title="Temperature Coefficient",
+        page_title="Temperature",
         page_icon="🌡️",
         layout="wide",
         initial_sidebar_state="expanded"
