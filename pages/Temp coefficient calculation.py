@@ -9,6 +9,10 @@ import re
 import bcrypt
 import streamlit_authenticator as stauth
 
+
+# Clear the cache
+st.cache_data.clear()
+
 # Clear session state to avoid referencing old credentials
 if 'authenticator' not in st.session_state:
     st.session_state['authenticator'] = None
