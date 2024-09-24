@@ -56,13 +56,7 @@ fields = {
 name, authentication_status, username = authenticator.login("main", fields=fields)
 
 if authentication_status:
-    # Set the theme
-    st.set_page_config(
-        page_title="Temperature",
-        page_icon="🌡️",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+
     # Load the image
     logo = Image.open("hf_logo.png")
 
@@ -144,7 +138,7 @@ if authentication_status:
         return new_columns
 
     # Title of the app
-    st.title('Temperature Coefficient Calculation App 🌡️')
+    st.title('Temperature Coefficient Calculation')
 
     # Sidebar settings
     st.sidebar.header('Settings')
