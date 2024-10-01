@@ -14,7 +14,8 @@ st.image(logo, width=200)  # Adjust the width as needed
 
 # Initialize session state for the authenticator if not already done
 if 'authenticator' not in st.session_state:
-    st.session_state['authenticator'] = None
+    # Set authenticator in session state
+    st.session_state.authenticator = None
 
 # Define user credentials
 names = ["Admin User"]
@@ -32,16 +33,16 @@ credentials = {
 }
 
 # Initialize the authenticator if not already in session state
-if st.session_state['authenticator'] is None:
+if st.session_state.authenticator is None:
     authenticator = stauth.Authenticate(
         credentials,
         "some_cookie_name",
         "some_signature_key",
         cookie_expiry_days=3
     )
-    st.session_state['authenticator'] = authenticator
+    st.session_state.authenticator = authenticator
 else:
-    authenticator = st.session_state['authenticator']
+    authenticator = st.session_state.authenticator
 
 # Custom fields for login
 fields = {
