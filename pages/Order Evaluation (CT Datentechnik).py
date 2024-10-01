@@ -156,8 +156,6 @@ if authentication_status:
                 selected_data['-1 Std Dev'] = mean_values[selected_column] - std_values[selected_column]
 
                 # Store the selected data in session state and display it
-                st.markdown("## 📈 Analytics Section")
-                st.markdown("----")  # Adds a horizontal line for visual separation
                 st.session_state.selected_data = selected_data
                 st.dataframe(selected_data)
             else:
@@ -221,8 +219,6 @@ if authentication_status:
 
         # Display the graph if available
         if 'plot' in st.session_state and st.session_state.plot:
-            st.markdown("## 📈 Analytics Section")
-            st.markdown("----")  # Adds a horizontal line for visual separation
             st.plotly_chart(st.session_state.plot, use_container_width=True)
 
 # If login fails, show the appropriate error or warning message
