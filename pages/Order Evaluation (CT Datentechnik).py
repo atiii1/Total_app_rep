@@ -12,7 +12,7 @@ logo = Image.open("hf_logo.png")
 # Display the image at the top of the app
 st.image(logo, width=200)  # Adjust the width as needed
 
-# Clear session state to avoid referencing old credentials
+# Initialize session state for the authenticator if not already done
 if 'authenticator' not in st.session_state:
     st.session_state['authenticator'] = None
 
@@ -31,7 +31,7 @@ credentials = {
     }
 }
 
-# Initialize the authenticator
+# Initialize the authenticator if not already in session state
 if st.session_state['authenticator'] is None:
     authenticator = stauth.Authenticate(
         credentials,
@@ -51,8 +51,10 @@ fields = {
     "Login": "Login"
 }
 
-# Login widget with fields parameter
+# Perform login using authenticator
 name, authentication_status, username = authenticator.login("main", fields=fields)
+
+# Check if the user has successfully logged in
 if authentication_status:
     authenticator.logout("Logout", "sidebar")
     st.sidebar.title(f"Welcome {name}")
@@ -223,6 +225,7 @@ if authentication_status:
             st.markdown("----")  # Adds a horizontal line for visual separation
             st.plotly_chart(st.session_state.plot, use_container_width=True)
 
+# If login fails, show the appropriate error or warning message
 elif authentication_status == False:
     st.error("Username/password is incorrect")
 
