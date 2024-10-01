@@ -14,10 +14,9 @@ st.image(logo, width=200)  # Adjust the width as needed
 
 # Initialize session state for the authenticator if not already done
 if 'authenticator' not in st.session_state:
-    # Set authenticator in session state
     st.session_state.authenticator = None
 
-# Define user credentials
+# Define user credentials with email
 names = ["Admin User"]
 usernames = ["admin"]
 passwords = ["hbfb"]
@@ -25,10 +24,14 @@ passwords = ["hbfb"]
 # Hash passwords using bcrypt
 hashed_passwords = [bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode() for password in passwords]
 
-# Create a dictionary for credentials
+# Add email to the credentials
 credentials = {
     "usernames": {
-        "admin": {"name": "Admin User", "password": hashed_passwords[0]},
+        "admin": {
+            "name": "Admin User",
+            "password": hashed_passwords[0],
+            "email": "atefehnafari1993@gmail.com"  # Add this line for email
+        }
     }
 }
 
