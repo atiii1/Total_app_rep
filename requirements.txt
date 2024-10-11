@@ -6,7 +6,7 @@ Pillow
 xlsxwriter
 fsspec
 bcrypt
-streamlit_authenticator
+streamlit_authenticator = 0.3.2
 numpy
 matplotlib
 seaborn
