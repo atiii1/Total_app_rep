@@ -87,7 +87,8 @@ if authentication_status:
     # Reset the graph when a new file is uploaded
     if uploaded_file:
         st.session_state.plot = None  # Clear the previous plot
-
+        st.session_state.plot_selected = None  # Clear the mean graph as well
+        
         sheets_dict, combined_df = read_excel_data(uploaded_file)
         columns = combined_df.columns.tolist()
 
@@ -221,10 +222,96 @@ if authentication_status:
             else:
                 st.error("Invalid column selection for plotting.")
 
+
         # Display the graph if available
         if 'plot' in st.session_state and st.session_state.plot:
             st.plotly_chart(st.session_state.plot, use_container_width=True)
 
+        #mean graphs of selecting variables
+        # Mean Graphs Setting section
+        st.markdown("### Mean Graphs Setting")
+
+        # User input for the number of fields
+        num_fields = st.slider("How many fields do you want to analyze?", min_value=1, max_value=7, value=1)
+
+        selected_columns = []
+        for i in range(num_fields):
+            selected_columns.append(st.selectbox(f"Choose Parameter {i+1}", columns, key=f"col_{i}"))
+
+        # Button to show the graph for selected variables
+        if st.button('Show Graph for Selected Variables'):
+            if len(selected_columns) != len(set(selected_columns)):
+                st.error("Please select unique parameters for all fields.")
+            else:
+                # Ensure all columns have the same length by dropping rows with NaNs
+                combined_selection = [cycle_time_column] + selected_columns
+                cleaned_df = combined_df[combined_selection].dropna(subset=combined_selection)
+
+                # Convert necessary columns to numeric
+                for col in combined_selection:
+                    cleaned_df[col] = pd.to_numeric(cleaned_df[col], errors='coerce')
+
+                # Group by cycle time and calculate mean values
+                grouped = cleaned_df.groupby(cycle_time_column).mean().reset_index()
+
+                # Determine the range for each selected column
+                column_ranges = {column: (grouped[column].max() - grouped[column].min()) for column in selected_columns}
+
+                # Sort columns by range in descending order
+                sorted_columns = sorted(column_ranges, key=column_ranges.get, reverse=True)
+
+                # Create a Plotly figure for selected variables
+                fig_selected = go.Figure()
+
+                # Add traces for each selected column
+                for i, column in enumerate(sorted_columns):
+                    axis = 'y1' if i == 0 else 'y2'
+                    fig_selected.add_trace(go.Scatter(
+                        x=grouped[cycle_time_column],
+                        y=grouped[column],
+                        mode='lines',
+                        name=f'Mean {column}',
+                        yaxis=axis
+                    ))
+
+                # Update layout for multiple y-axes
+                fig_selected.update_layout(
+                    title=f'<b>Mean Values of Selected Parameters across all sheets</b>',
+                    xaxis_title=cycle_time_column,
+                    yaxis=dict(
+                        title=sorted_columns[0],
+                        titlefont=dict(color="blue"),
+                        tickfont=dict(color="blue"),
+                        side='left'
+                    ),
+                    yaxis2=dict(
+                        title=sorted_columns[1] if len(sorted_columns) > 1 else "",
+                        titlefont=dict(color="red"),
+                        tickfont=dict(color="red"),
+                        overlaying='y',
+                        side='right'
+                    ),
+                    legend=dict(
+                        x=1.05,
+                        y=1,
+                        traceorder="normal",
+                        font=dict(size=12),
+                    ),
+                    title_font=dict(size=18, color='navy'),
+                    autosize=True,
+                    width=900,
+                    height=700,
+                    font=dict(size=16)
+                )
+
+                # Store the plot in session state
+                st.session_state.plot_selected = fig_selected
+
+        # Display the graph for selected variables if available
+        if 'plot_selected' in st.session_state and isinstance(st.session_state.plot_selected, go.Figure) and st.session_state.plot_selected:
+            st.plotly_chart(st.session_state.plot_selected, use_container_width=True)
+
+            
 # If login fails, show the appropriate error or warning message
 elif authentication_status == False:
     st.error("Username/password is incorrect")
