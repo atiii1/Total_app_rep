@@ -151,6 +151,11 @@ if authentication_status:
                 # If the user doesn't want to process step number, use the entire dataset
                 filtered_df = combined_df.copy()
 
+            # Settings section ends here
+            
+            # --- Analysis Section starts here ---
+            st.markdown("### 📊 Analysis")
+
             # Button to show data as a table
             if st.button('Show Data'):
                 selected_data = pd.DataFrame()
