@@ -49,17 +49,26 @@ def read_rpt_file(file):
     Function to read a .rpt file and convert it to a DataFrame.
     Assumes the .rpt file uses ';' as the delimiter.
     """
-    # Read the .rpt file
-    lines = file.readlines()
-    # Decode and strip each line, then split by ';'
-    lines = [line.decode('utf-8').strip() for line in lines]
-    
-    # Save the first row
+    lines = []
+    try:
+        # Attempt to read with ISO-8859-1 encoding (handles `\xb0`)
+        lines = file.readlines()
+        lines = [line.decode('ISO-8859-1').strip() for line in lines]
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        return pd.DataFrame(), ""
+
+    # Check if the file has enough lines
+    if len(lines) < 2:
+        st.error("The .rpt file does not contain enough data to process.")
+        return pd.DataFrame(), ""
+
+    # First row (metadata)
     first_row = lines[0]
-    
-    # Skip the first row and use the second row as header
+
+    # Header row
     header = lines[1].split(';')
-    
+
     # Make header unique
     def make_unique(header):
         counts = {}
@@ -73,25 +82,27 @@ def read_rpt_file(file):
                 new_name = name
             new_header.append(new_name)
         return new_header
-    
+
     header = make_unique(header)
-    
-    # Initialize an empty list to store the data rows
+
+    # Data rows
     data = []
-    
-    # Loop through the remaining lines starting from the third line
     for line in lines[2:]:
         row = line.split(';')
-        # Ensure the row has the same number of columns as the header
         if len(row) == len(header):
             data.append(row)
-    
+
+    # Check if data is empty
+    if not data:
+        st.warning("The .rpt file does not contain any data rows after the header.")
+        return pd.DataFrame(columns=header), first_row
+
     # Create a DataFrame
     df = pd.DataFrame(data, columns=header)
-    
+
     # Convert numeric columns to appropriate data types
     df = df.apply(pd.to_numeric, errors='ignore')
-    
+
     return df, first_row
 
 def save_as_excel(dataframes, first_rows):
