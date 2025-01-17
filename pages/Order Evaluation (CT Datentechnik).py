@@ -63,7 +63,7 @@ name, authentication_status, username = authenticator.login("main", fields=field
 if authentication_status:
     authenticator.logout("Logout", "sidebar")
     st.sidebar.title(f"Welcome {name}")
-    st.title("Order Evaluation")
+    st.title("Order Evaluation (CT Datentechnik)")
 
     st.markdown("### 🔧 Settings")
 
