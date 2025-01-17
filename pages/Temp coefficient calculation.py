@@ -67,7 +67,7 @@ if authentication_status:
     sns.set_theme(style="darkgrid")
 
     # Function to process uploaded file and detect intervals
-    def process_file(df, time_col, Power_col, Tc_col, Tm_col, active_Temp_col, tolerance, cooling_s, manual_Tc, manual_Tm, use_manual):
+    def process_file(df, time_col, Power_col, Tc_col, Tm_col, active_Temp_col, tolerance, cooling_s, manual_Tc, manual_Tm, use_manual,duration_value):
         # Ensure the time column is treated as float
         df[time_col] = df[time_col].astype(float)
         
@@ -88,7 +88,7 @@ if authentication_status:
             end_time = df[time_col].iloc[end_index - 1]
             duration = (end_time - start_time)
 
-            if duration >= 10:
+            if duration >= duration_value:
                 # Calculate mean values during this interval
                 interval_data = df.iloc[start_index:end_index]
                 mean_Power = interval_data[Power_col].mean()
@@ -160,6 +160,7 @@ if authentication_status:
         time_col = st.sidebar.selectbox("Select the time column", df.columns)
         Power_col = st.sidebar.selectbox("Select the Power column", df.columns)
         active_Temp_col = st.sidebar.selectbox("Select the Active Temp column", df.columns)
+        duration_value_ = st.sidebar.number_input("Select the constant calibration duration", value=0.0)
 
         # Option to select column or manual input for Compound Temp
         Tc_option = st.sidebar.radio("Select Compound Temp input method", ["Select column", "Manual input"])
@@ -184,7 +185,7 @@ if authentication_status:
 
         if st.sidebar.button("Calculate"):
             use_manual = (Tc_option == "Manual input") or (Tm_option == "Manual input")
-            results = process_file(df, time_col, Power_col, Compound_Temp_col, Machine_Temp_col, active_Temp_col, tolerance, cooling_s, manual_Tc, manual_Tm, use_manual)
+            results = process_file(df, time_col, Power_col, Compound_Temp_col, Machine_Temp_col, active_Temp_col, tolerance, cooling_s, manual_Tc, manual_Tm, use_manual,duration_value_)
 
             if results:
                 # Display the results
