@@ -1,3 +1,5 @@
+#this is test code to update single sheets analysis#
+####################################################
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -295,33 +297,31 @@ if authentication_status:
 
 
                 if st.button('Show Data'):
-                    selected_data = pd.DataFrame()
+                   
+                    # Initialize a dictionary to collect column data
+                    
+                    data_columns = {}
 
                     for sheet_name, df in sheets_dict.items():
                         if selected_column in df.columns:
                             sanitized_sheet_name = sanitize_sheet_name(sheet_name)
-                            selected_data[sanitized_sheet_name] = df[selected_column]
+                            # Set a unique identifier (or reset index if no identifier exists)
+                            df = df.reset_index()  # Adjust this based on actual unique identifiers
+                            # Add the column data to the dictionary
+                            data_columns[sanitized_sheet_name] = pd.to_numeric(df[selected_column], errors='coerce')
 
-                    # Drop rows with None values in the selected column
-                    selected_data = selected_data.dropna()
+                    # Create a DataFrame from the collected columns, aligning by index
+                    result_table = pd.DataFrame(data_columns)
 
-                    # Check if selected data is available
-                    if not selected_data.empty:
-                        # Calculate mean and ±1 standard deviation grouped by the group_by_column
-                        cleaned_df = filtered_df[[selected_column, group_by_column]].dropna()
-                        grouped = cleaned_df.groupby(group_by_column)
-                        mean_values = grouped.mean().reset_index()
-                        std_values = grouped.std().reset_index()
+                    # Add Mean, Median, and Std Dev columns
+                    result_table['Mean'] = result_table.mean(axis=1, skipna=True)
+                    result_table['Median'] = result_table.median(axis=1, skipna=True)
+                    result_table['Std Dev'] = result_table.std(axis=1, skipna=True)
 
-                        selected_data['Mean'] = mean_values[selected_column]
-                        selected_data['+1 Std Dev'] = mean_values[selected_column] + std_values[selected_column]
-                        selected_data['-1 Std Dev'] = mean_values[selected_column] - std_values[selected_column]
+                    # Display the table
+                    st.markdown("### 📋 Combined Table of Selected Data with Statistics")
+                    st.dataframe(result_table)
 
-                        # Store the selected data in session state and display it
-                        st.session_state.selected_data = selected_data
-                        st.dataframe(selected_data)
-                    else:
-                        st.warning("No data is available for the selected column.")
 
                 # Button to show the graph
                 if st.button('Show Graph'):
