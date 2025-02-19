@@ -137,7 +137,7 @@ if authentication_status:
     st.sidebar.title(f"Welcome {name}")
 
     # Streamlit app
-    st.title("RPT to Excel Converter")
+    st.title("RPT to XLSX Converter")
 
     # File uploader
     uploaded_files = st.file_uploader("Upload .rpt files", type="rpt", accept_multiple_files=True)
