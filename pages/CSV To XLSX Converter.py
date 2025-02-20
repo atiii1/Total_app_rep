@@ -5,6 +5,8 @@ import tempfile
 from PIL import Image
 import streamlit_authenticator as stauth
 import bcrypt
+import zipfile
+import os
 
 # Load the image
 logo = Image.open("hf_logo.png")
@@ -63,6 +65,9 @@ def main():
 
     # File upload field (Allow Multiple Files)
     uploaded_files = st.file_uploader("Upload your CSV files", type=["csv"], accept_multiple_files=True)
+
+    # List to keep track of converted file paths
+    converted_files = []
 
     if uploaded_files:
         for uploaded_file in uploaded_files:  # Process each file separately
@@ -140,22 +145,33 @@ def main():
                     with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
                         combined_df.to_excel(writer, sheet_name="Combined", index=False, header=False)
 
-                    # Provide the file for download (Fixed Unique Key Issue)
+                    # Store the path for later zipping
+                    converted_files.append((xlsx_file_name, xlsx_path))
                     st.success(f"File **{uploaded_file.name}** processed successfully!")
-                    with open(xlsx_path, "rb") as f:
-                        st.download_button(
-                            label=f"Download {order_name}.xlsx",
-                            data=f,
-                            file_name=xlsx_file_name,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key=f"download-{uploaded_file.name}"  # Unique key added
-                        )
 
                 else:
                     st.error(f"The file **{uploaded_file.name}** does not contain the required 'Order;' text on line 3.")
 
             except Exception as e:
                 st.error(f"An error occurred while processing {uploaded_file.name}: {e}")
+
+        # Create a ZIP file containing all converted files
+        if converted_files:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as temp_zip:
+                zip_path = temp_zip.name
+                with zipfile.ZipFile(zip_path, 'w') as zipf:
+                    for file_name, file_path in converted_files:
+                        zipf.write(file_path, os.path.basename(file_name))
+
+            # Provide the ZIP file for download
+            st.success("All files processed successfully!")
+            with open(zip_path, "rb") as f:
+                st.download_button(
+                    label="Download All as ZIP",
+                    data=f,
+                    file_name="converted_files.zip",
+                    mime="application/zip"
+                )
 
 # Check if the user has successfully logged in
 if authentication_status:
